@@ -58,7 +58,6 @@ SYNOPSIS
           # SMS Class (can be `normal' or `flash')
           # `flash' mode delivers instantly!
           class     => 'normal'
-
       );
  
 DESCRIPTION
@@ -73,6 +72,10 @@ DESCRIPTION
     Please be kind to the universe and contact me if you have troubles or
     you are interested in this.
 
+    Please be monstruosly kind to the universe and (if you don't mind
+    spending an SMS) use the `examples/send_to_cosimo.pl' script to make me
+    know that Device::Gsm works with your device (thanks!).
+
   REQUIRES
 
     *   Device::Modem, which in turn requires
@@ -84,6 +87,10 @@ DESCRIPTION
     None
 
 TO-DO
+    Spooler
+        Build a simple spooler program that sends all SMS stored in a
+        special queue (that could be a simple filesystem folder).
+
     Validity Period
         Support `validity period' option on SMS sending. Tells how much time
         the SMS Service Center must hold the SMS for delivery.

@@ -43,7 +43,11 @@ Revision history for Perl extension Device::Gsm.
 	- included network registration test (must supply PIN in t/30register.t)
 	- added send_sms.pl in examples/
 
-1.15  Wed May 22 07:15:55 CEST 2002
-	- corrected Device::Gsm usage example in inline pod (grazie a Domenico Viggiani)
-	
-	
+1.15
+1.16  Tue Sep  3 23:37:56 CEST 2002
+	- fixed documentation example (thanks to Domenico Viggiani)
+	- added `examples/send_to_cosimo.pl' script to report successful
+	  installations of Device::Gsm module :-)
+	- improved test scripts; now work also with env vars, and without too
+	  many `connect()'s
+
