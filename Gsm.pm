@@ -1,5 +1,5 @@
 # Device::Gsm - a Perl class to interface GSM devices as AT modems
-# Copyright (C) 2002 Cosimo Streppone, cosimo@cpan.org
+# Copyright (C) 2002-2004 Cosimo Streppone, cosimo@cpan.org
 #
 # This program is free software; you can redistribute it and/or modify
 # it only under the terms of Perl itself.
@@ -13,13 +13,14 @@
 # testing and support for custom GSM commands, so use it at your own risk,
 # and without ANY warranty! Have fun.
 #
-# $Id: Gsm.pm,v 1.16 2002/09/03 21:36:53 cosimo Exp $
+# $Id: Gsm.pm,v 1.28 2004/01/23 00:01:30 cosimo Exp $
 
 package Device::Gsm;
-$Device::Gsm::VERSION = sprintf "%d.%02d", q$Revision: 1.16 $ =~ /(\d+)\.(\d+)/;
+$Device::Gsm::VERSION = sprintf "%d.%02d", q$Revision: 1.28 $ =~ /(\d+)\.(\d+)/;
 
 use strict;
 use Device::Modem;
+use Device::Gsm::Sms;
 use Device::Gsm::Pdu;
 
 @Device::Gsm::ISA = ('Device::Modem');
@@ -49,8 +50,8 @@ sub connect {
 	# | Falcom Swing (A2D)  |      9600 |
 	# | Siemens C35/C45     |     19200 |
 	# | Nokia phones        |     19200 |
-	# | Digicom             |      9600 |
 	# | Nokia Communicator  |      9600 |
+	# | Digicom             |      9600 |
 	# `---------------------------------'
 	#
 	# GSM class defaults to 19200 baud
@@ -60,8 +61,70 @@ sub connect {
 	$me->SUPER::connect( %aOpt );
 }
 
+#
+# Get/set phone date and time
+#
+sub datetime {
+	my $self     = shift;
+	my $ok       = undef;            # ok/err flag
+	my $datetime = undef;            # datetime string
+	my @time     = ();               # array in "localtime" format
+
+	# Test support for clock function
+	if( $self->test_command('+CCLK') ) {
+
+		if( @_ ) {
+
+			# If called with "$self->datetime(time())" format
+			if( @_ == 1 ) {
+				# $_[0] must be result of `time()' func
+				@time = localtime($_[0]);
+			} else {
+				# If called with "$self->datetime(localtime())" format
+				# @_ here is the result of `localtime()' func
+				@time = @_;
+			}
+
+			$datetime = sprintf(
+				'%02d/%02d/%02d,%02d:%02d:%02d',
+				$time[5]-100,     # year
+				1+$time[4],       # month
+				$time[3],         # day
+				@time[2,1,0],     # hr,min,secs
+			);
+
+			# Set time of phone
+			$self->atsend( qq{AT+CCLK="$datetime"} . Device::Modem::CR );
+			$ok = $self->parse_answer();
+
+			$self->log->write('info', "write datetime ($datetime) to phone => (".($ok?'OK':'FAILED').")");
+
+		} else {
+
+			$self->atsend( 'AT+CCLK?' . Device::Modem::CR );
+			($ok, $datetime) = $self->parse_answer();
+		
+			#warn('datetime='.$datetime);
+			if( $ok && $datetime =~ m|\+CCLK: "(\d\d)/(\d\d)/(\d\d)\,(\d\d):(\d\d):(\d\d)"| ) {
+				$datetime = "$1/$2/$3 $4:$5:$6";
+				$self->log->write('info', "read datetime from phone ($datetime)");
+			} else {
+				$self->log->write('warn', "datetime format ($datetime) not recognized");
+				$datetime = undef;
+			}
+
+		}
+
+	}
+
+	return $datetime;
+
+}
+
+#
 # Hangup and terminate active call(s)
 # this overrides the `Device::Modem::hangup()' method
+#
 sub hangup {
 	my $self = shift;
 	$self->log->write('info', 'hanging up...');
@@ -71,13 +134,15 @@ sub hangup {
 	$self->answer();
 }
 
+#
 # Who is the manufacturer of this device?
+#
 sub manufacturer() {
 	my $self = shift;
 	my($ok, $man);
 
 	# Test if manufacturer code command is supported
-	if( $self->test_command('CGMI') ) {
+	if( $self->test_command('+CGMI') ) {
 
 		$self->atsend( 'AT+CGMI' . Device::Modem::CR );
 		($ok, $man) = $self->parse_answer();
@@ -90,13 +155,15 @@ sub manufacturer() {
 
 }
 
+#
 # What is the model of this device?
+#
 sub model() {
 	my $self = shift;
 	my($code, $model);
 
 	# Test if manufacturer code command is supported
-	if( $self->test_command('CGMM') ) {
+	if( $self->test_command('+CGMM') ) {
 
 		$self->atsend( 'AT+CGMM' . Device::Modem::CR );
 		($code, $model) = $self->parse_answer();
@@ -108,13 +175,15 @@ sub model() {
 	return $model || $code;
 }
 
+#
 # Get handphone serial number (IMEI number)
+#
 sub imei() {
 	my $self = shift;
 	my($code,$imei);
 
 	# Test if manufacturer code command is supported
-	if( $self->test_command('CGSN') ) {
+	if( $self->test_command('+CGSN') ) {
 
 		$self->atsend( 'AT+CGSN' . Device::Modem::CR );
 		($code, $imei) = $self->parse_answer();
@@ -129,14 +198,59 @@ sub imei() {
 # Alias for `imei()' is `serial_number()'
 *serial_number = *imei;
 
+#
+# Get mobile phone signal quality (expressed in dBm)
+#
+sub signal_quality() {
+	my $self = shift;
+	# Error code, dBm (signal power), bit error rate
+	my($code, $dBm, $ber);
 
+	# Test if signal quality command is implemented
+	if( $self->test_command('+CSQ') ) {
+
+		$self->atsend( 'AT+CSQ' . Device::Modem::CR );
+		($code, $dBm) = $self->parse_answer();
+
+		if( $dBm =~ /\+CSQ: (\d+),(\d+)/ ) {
+
+			($dBm, $ber) = ($1, $2);
+
+			# Further process dBm number to obtain real dB power
+			if( $dBm > 30 ) {
+				$dBm = -51;
+			} else {
+				$dBm = -113 + ($dBm << 1);
+			}
+
+			$self->log->write('info', 'signal dBm power is ['.$dBm.'], bit error rate ['.$ber.']');
+
+		} else {
+
+			$self->log->write('warn', 'cannot obtain signal dBm power');
+
+		}
+
+	} else {
+
+		$self->log->write('warn', 'signal quality command not supported!');
+
+	}
+
+	return $dBm;
+
+}
+
+
+#
 # Get the GSM software version on this device
+#
 sub software_version() {
 	my $self = shift;
 	my($code, $ver);
 
 	# Test if manufacturer code command is supported
-	if( $self->test_command('CGMR') ) {
+	if( $self->test_command('+CGMR') ) {
 
 		$self->atsend( 'AT+CGMR' . Device::Modem::CR );
 		($code, $ver) = $self->parse_answer();
@@ -148,26 +262,100 @@ sub software_version() {
 	return $ver || $code;
 }
 
-
+#
+# Test support for a specific command
+#
 sub test_command {
 	my($self, $command) = @_;
 
+	# Support old code adding a `+' if not specified
+	# TODO to be removed in 1.30 ?
+	if( $command =~ /^[a-zA-Z]/ ) {
+		$command = '+'.$command;
+	}
+
 	# Standard test procedure for every command
 	$self->log->write('info', 'testing support for command ['.$command.']');
-	$self->atsend( "AT+$command=?" . Device::Modem::CR );
+	$self->atsend( "AT$command=?" . Device::Modem::CR );
 
 	# If answer is ok, command is supported
-	my $ok = $self->answer() =~ /OK/;
+	my $ok = ($self->answer() || '') =~ /OK/o;
 	$self->log->write('info', 'command ['.$command.'] is '.($ok ? '' : 'not ').'supported');
 
 	$ok;
 }
 
-# register to GSM service provider network
+#
+# Read all messages on SIM card (XXX must be registered on network)
+#
+sub messages() {
+	my $self = shift;
+	$self->log->write('info', 'reading messages on SIM card');
+
+	# Register on network (give your PIN number for this!)
+	#return undef unless $self->register();
+	$self->register();
+
+	#
+	# Read messages (XXX need to check if device supports CMGL with `stat'=4)
+	#
+	$self->atsend('AT+CMGL=4'.Device::Modem::CR);
+	my($messages) = $self->answer();
+
+	#if( $code =~ /ERROR/ ) {
+	#	$self->log->write('error', 'cannot read SMS messages on SIM: ['.$code.']');
+	#	return ();
+	#}
+
+	# Ok, messages read, now convert from PDU and store in object
+	$self->log->write('debug', 'messages='.$messages );
+
+	my @data = split /\r+\n*/m, $messages;
+
+	# Check for errors on SMS reading
+	my $code;
+	if( ($code = pop @data) =~ /ERROR/ ) {
+		$self->log->write('error', 'cannot read SMS messages on SIM: ['.$code.']');
+		return ();
+	}
+
+	my @message = ();
+	my $current;
+
+	#
+	# Parse received data (result of +CMGL command)
+	#
+	while( @data ) {
+
+		$self->log->write('debug', 'data[] = ', $data[0] );
+
+		# Instance new message object
+		my $msg = new Device::Gsm::Sms(
+			header => shift @data,
+			pdu    => shift @data
+		);
+
+		# Check if message has been instanced correctly
+		if( ref $msg ) {
+			push @message, $msg;
+		} else {
+			$self->log->write('info', 'could not instance message!');
+		}
+
+	}
+
+	$self->log->write('info', 'found '.(scalar @message).' messages on SIM. Reading.');
+
+	return @message;
+}
+
+#
+# Register to GSM service provider network
+#
 sub register {
 	my $me = shift;
 	my $lOk = 0;
-	
+
 	# Check for connection
 	if( ! $me->{'CONNECTED'} ) {
 		$me->log-> write( 'info', 'Not yet connected. Doing it now...' );
@@ -180,25 +368,25 @@ sub register {
 	# Send PIN status query
 	$me->log->write( 'info', 'PIN status query' );
 	$me->atsend( 'AT+CPIN?' . Device::Modem::CR );
-	
+
 	# Get answer
 	my $cReply = $me->answer();
 
 	if( $cReply =~ /READY/ ) {
-		
+
 		$me->log->write( 'info', 'Already registered on network. Ready to send.' );
 		$lOk = 1;
-		
+
 	} elsif( $cReply =~ /SIM PIN/ ) {
-		
+
 		# Pin request, sending PIN code
 		$me->log->write( 'info', 'PIN requested: sending...' );
 		$me->atsend( qq[AT+CPIN="$$me{'pin'}"] . Device::Modem::CR );
-		
+
 		# Get reply
 		$cReply = $me->answer();
 
-		# Test reply		
+		# Test reply
 		if( $cReply !~ /ERROR/ ) {
 			$me->log->write( 'info', 'PIN accepted. Ready to send.' );
 			$lOk = 1;
@@ -216,7 +404,7 @@ sub register {
 
 	# XXX Sending number of service provider
 	# $me->log -> write( 'Sending service provider number' );
-	
+
 }
 
 
@@ -227,7 +415,7 @@ sub register {
 #   validity  => [ default = 4 days ]
 #   content   => 'text-only for now'
 #   mode      => 'text' | 'pdu'        (default = 'pdu')
-# 
+#
 sub send_sms {
 
 	my( $me, %opt ) = @_;
@@ -247,10 +435,10 @@ sub send_sms {
 
 	# Again check if now registered
 	if( ! $me->{'REGISTERED'} ) {
-		
+
 		$me->log->write( 'warning', 'ERROR in registering to network' );
 		return $lOk;
-		
+
 	}
 
 	# Ok, registered. Select mode to send SMS
@@ -268,8 +456,9 @@ sub send_sms {
 	return $lOk;
 }
 
-
+#
 # _send_sms_text( %options ) : sends message in text mode
+#
 sub _send_sms_text {
 	my($me, %opt) = @_;
 
@@ -283,12 +472,10 @@ sub _send_sms_text {
 
 	# Select text format for messages
 	$me->atsend(  q[AT+CMGF=1] . Device::Modem::CR );
-	$me->wait(200);
 	$me->log->write('info', 'Selected text format for message sending');
 
 	# Send sms in text mode
 	$me->atsend( qq[AT+CMGS="$num"] . Device::Modem::CR );
-	$me->wait(200);
 
 	$me->atsend( $text . Device::Modem::CTRL_Z );
 	$me->wait(1000);
@@ -301,11 +488,14 @@ sub _send_sms_text {
 		$me->log->write( 'info', "Sent SMS (text mode) to $num!" );
 		$lOk = 1;
 	}
-	
+
 	$lOk
 }
 
 
+#
+# _send_sms_pdu( %options )  : sends message in PDU mode
+#
 sub _send_sms_pdu {
 	my($me, %opt) = @_;
 
@@ -350,19 +540,17 @@ sub _send_sms_pdu {
 	$me->log->write('info', 'due to send PDU ['.$pdu.']');
 
 	# Sending main SMS command ( with length )
-	my $len = ( (length $pdu) >> 1 ) - 1; 
+	my $len = ( (length $pdu) >> 1 ) - 1;
 	#$me->log->write('info', 'AT+CMGS='.$len.' string sent');
 
 	# Select PDU format for messages
 	$me->atsend(  q[AT+CMGF=0] . Device::Modem::CR );
-	$me->wait(200);
 	$me->log->write('info', 'Selected PDU format for msg sending');
 
 	# Send SMS length
 	$me->atsend( qq[AT+CMGS=$len] . Device::Modem::CR );
-	$me->wait(200);
 
-	# Sending SMS content encoded as PDU	
+	# Sending SMS content encoded as PDU
 	$me->log->write('info', 'PDU sent ['.$pdu.' + CTRLZ]' );
 	$me->atsend( $pdu . Device::Modem::CTRL_Z );
 	$me->wait(2000);
@@ -376,7 +564,7 @@ sub _send_sms_pdu {
 		$me->log->write( 'info', "Sent SMS (pdu mode) to $num!" );
 		$lOk = 1;
 	}
-	
+
 	$lOk
 }
 
@@ -403,7 +591,7 @@ sub service_center(;$) {
 
 		# Check for modem answer
 		$lOk = ( $self->answer =~ /OK/ );
-		
+
 		if( $lOk ) {
 			$self->log->write('info', 'service center number ['.$nCenter.'] stored');
 		} else {
@@ -436,9 +624,175 @@ sub service_center(;$) {
 
 }
 
+# Transform ascii char set to gsm 3.38 charset
+{
+
+	my @gsm = map chr, 0 .. 255;
+	$gsm[0] = '@';
+	$gsm[1] = '£';
+	$gsm[2] = '$';
+	$gsm[3] = '¥';
+	$gsm[5] = 'é';
+	$gsm[4] = 'è';
+	$gsm[6] = 'ù';
+	$gsm[7] = 'ì';
+	$gsm[8] = 'ò';
+	$gsm[9] = 'ç';
+	$gsm[11] = 'ø';
+	$gsm[12] = $gsm[11];
+	$gsm[15] = 'å';
+	$gsm[17] = '_';
+ 	$gsm[20] = '^';
+ 	$gsm[27] = chr(164); # '¤';
+	$gsm[29] = 'æ';
+	$gsm[30] = chr(223); # 'ß';
+	$gsm[31] = chr(201); # 'É';
+	$gsm[36] = '¤';
+# 	$gsm[47] = '\\';
+#	$gsm[60] = '[';
+#	$gsm[62] = ']';
+ 	$gsm[92] = '/';
+ 	$gsm[95] = '§';
+	$gsm[123] = 'ä';
+	$gsm[127] = 'à';
+	$gsm[124] = 'ö';
+	$gsm[125] = 'ñ';
+	$gsm[126] = 'ü';
+	$gsm[164] = '¤';
+ 	$gsm[232] = 'è';
+ 	$gsm[233] = 'é';
+ 	$gsm[236] = 'ì';
+ 	$gsm[248] = 'ø';
+
+=cut
+
+CODE 	$gsm[95] = '§';
+CODE 	$gsm[27] = '¤';
+CODE 	$gsm[101] = 'é';
+CODE 	$gsm[5] = 'è';
+CODE 	$gsm[4] = 'g';
+CODE 	$gsm[103] = 'h';
+CODE 	$gsm[104] = 'i';
+CODE 	$gsm[105] = '4';
+CODE 	$gsm[52] = 'ì';
+CODE 	$gsm[7] = '[';
+CODE 	$gsm[27] = '\';
+CODE 	$gsm[60] = ']';
+CODE 	$gsm[27] = '^';
+CODE 	$gsm[47] = 'j';
+CODE 	$gsm[27] = 'k';
+CODE 	$gsm[62] = 'l';
+CODE 	$gsm[27] = '5';
+CODE 	$gsm[20] = 'm';
+CODE 	$gsm[106] = 'n';
+CODE 	$gsm[107] = 'o';
+CODE 	$gsm[108] = '6';
+CODE 	$gsm[53] = 'ñ';
+CODE 	$gsm[109] = 'ò';
+CODE 	$gsm[110] = 'ø';
+CODE 	$gsm[111] = 'ö';
+CODE 	$gsm[54] = 'p';
+CODE 	$gsm[125] = 'q';
+CODE 	$gsm[8] = 'r';
+CODE 	$gsm[12] = 's';
+CODE 	$gsm[124] = '7';
+CODE 	$gsm[112] = 't';
+CODE 	$gsm[113] = 'u';
+CODE 	$gsm[114] = 'v';
+CODE 	$gsm[115] = '8';
+CODE 	$gsm[55] = 'ù';
+CODE 	$gsm[116] = 'ü';
+CODE 	$gsm[117] = 'w';
+CODE 	$gsm[118] = 'x';
+CODE 	$gsm[56] = 'y';
+CODE 	$gsm[6] = 'z';
+CODE 	$gsm[126] = '9';
+CODE 	$gsm[119] = '0';
+CODE 	$gsm[120] = '+';
+CODE 	$gsm[121] = '';
+CODE 	$gsm[122] = '';
+CODE 	$gsm[57] = '';
+CODE 	$gsm[48] = '';
+CODE 	$gsm[43] = '';
+
+=cut
+
+=cut
+
+	# The following is the GSM 3.38 standard charset, as shown
+	# on some Siemens documentation found on the internet
+	my $gsm_charset = join('',
+		'@»$»»»»»»»'."\n".'»»'."\r".'»»»',  # 16
+		'»»»»»»»»»»»»ß»»',
+		' !"# %&‘()*+,-./',
+		'0123456789:;<=>?',
+		'-ABCDEFGHIJKLMNO',
+		'PQRSTUVWXYZÄÖ»Ü»',
+		'¨abcdefghijklmno',
+		'pqrstuvwxyzäö»ü»'
+	);
+
+=cut
+
+	my $gsm_charset = join('',@gsm);
+
+sub _ascii2gsm {
+	my $self = shift;
+	my $ascii = shift;
+
+	return '' unless $ascii;
+
+	my $gsm = '';
+	my $n = 0;
+	for( ; $n < length($ascii) ; $n++ ) {
+		$gsm .= chr index($gsm_charset, substr($ascii, $n, 1));
+	}
+
+	return $gsm;
+}
+
+sub _gsm2ascii {
+	my $self = shift;
+	my $gsm = shift;
+	return '' unless $gsm;
+
+	my $ascii = '';
+	my $n = 0;
+
+	for( ; $n < length($gsm) ; $n++ ) {
+
+		my $c = ord( substr( $gsm, $n, 1 ) );
+
+		# Extended charset ?
+		if( $c == 0x1B ) {                          # "escape extended mode"
+			$n++;
+			$c = ord(substr($gsm, $n, 1));
+			if( $c == 0x65 ) {                  # 'e'
+				$ascii .= chr(164);         # iso_8859_15 EURO SIGN
+			} elsif( $c == 0x14 ) {
+				$ascii .= '^';
+			} elsif( $c == 0x3C ) {
+				$ascii .= '[';
+			} elsif( $c == 0x2F ) {
+				$ascii .= '\\';
+			} elsif( $c == 0x3E ) {
+				$ascii .= ']';
+			} else {
+				$ascii .= chr($c);          # Un-managed "extended" chars
+			}
+		} else {
+			# Standard GSM 3.38 encoding
+			$ascii .= substr( $gsm_charset, $c, 1 );
+		}
+	}
+
+	return $ascii;
+}
+
+}
+
 
 2703;
-
 
 
 
@@ -465,72 +819,281 @@ Device::Gsm - Perl extension to interface GSM cellular / modems
   } else {
       print "sorry, no connection with gsm phone on serial port!\n";
   }
- 
+
   # Register to GSM network (you must supply PIN number in above new() call)
   $gsm->register();
- 
-  # Get the manufacturer and model code of device
-  my $mnf   = $gsm->manufacturer();
-  my $model = $gsm->model();
-  print "soft version is ", $gsm->software_version(), "\n";
 
-  my $imei = $gsm->imei() or
-	$imei = $gsm->serial_number();
- 
-  # Test for command support
-  if( $self->test_command('CGMI') ) {
-      # `AT+CGMI' is supported!
-  } else {
-      # No luck, CGMI command not available
-  }
- 
-  print 'Service number is now: ', $gsm->service_center(), "\n";
-  $gsm->service_center( '+001505050' );   # Sets new number
-  
   # Send quickly a short text message
-  $modem->send_sms(
+  $gsm->send_sms(
       recipient => '+3934910203040',
       content   => 'Hello world! from Device::Gsm'
   );
 
-  # The long way...
-  $modem->send_sms(
-
-      recipient => '34910203040',
-      content   => 'Hello world again, with more args',
-
-      # SMS sending mode
-      # try `text' on old phones or GSM modems
-      # `pdu' is the default nowadays
-      mode      => 'pdu',
-
-      # SMS Class (can be `normal' or `flash')
-      # `flash' mode delivers instantly!
-      class     => 'normal'
-  );
- 
+  # Get list of Device::Gsm::Sms message objects
+  # see `examples/read_messages.pl' for all the details
+  my @messages = $gsm->messages();
 
 =head1 DESCRIPTION
 
 C<Device::Gsm> class implements basic GSM functions, network registration and SMS sending.
 
 This class supports also C<PDU> mode to send C<SMS> messages, and should be
-fairly usable. I'm developing and testing it under C<Linux RedHat 7.1>
-with a 16550 serial port and C<Siemens C35i> / C<C45> GSM phones attached with
-a Siemens-compatible serial cable.
+fairly usable. In the past, I have developed and tested it under Linux RedHat 7.1
+with a 16550 serial port and Siemens C35i/C45 GSM phones attached with
+a Siemens-compatible serial cable. Currently, I'm developing and testing this stuff
+with Linux Slackware 9.1 and a B<Cambridge Silicon Radio> (CSR) USB
+bluetooth dongle, connecting to a Nokia 6600 phone.
 
 Please be kind to the universe and contact me if you have troubles or you are
 interested in this.
 
 Please be monstruosly kind to the universe and (if you don't mind spending an SMS)
-use the `examples/send_to_cosimo.pl' script to make me know that Device::Gsm works
+use the C<examples/send_to_cosimo.pl> script to make me know that Device::Gsm works
 with your device (thanks!).
 
-=head2 REQUIRES
+Recent versions of C<Device::Gsm> have also an utility called C<autoscan> in
+the C<bin/> folder, that creates a little profile of the devices it runs
+against, that contains information about supported commands and exact output
+of commands to help recognize similar devices.
+
+Be sure to send me your profile by email (if you want to),
+so I can add better support for your device in the future!
+
+=head1 METHODS
+
+The following documents all supported methods with simple examples of usage.
+
+=head2 connect()
+
+This is the main call that connects to the appropriate device. After the
+connection has been established, you can start issuing commands.
+The list of accepted parameters (to be specified as hash keys and values) is
+the same of C<Device::SerialPort> (or C<Win32::SerialPort> on Windows platform),
+as all parameters are passed to those classes' connect() method.
+
+The default value for C<baudrate> parameter is C<19200>.
+
+Example:
+
+	my $gsm = Device::Gsm->new( port=>'/dev/ttyS0', log=>'syslog' );
+	# ...
+	if( $gsm->connect(baudrate => 19200) ) {
+		print "Connected!";
+	} else {
+		print "Could not connect, sorry!";
+	}
+	# ...
+
+=head2 datetime()
+
+Used to get or set your phone/gsm modem date and time.
+
+If called without parameters, it gets the current phone/gsm date and time in "gsm"
+format "YY/MM/DD,HH:MN:SS". For example C<03/12/15,22:48:59> means December the 15th,
+at 10:48:59 PM. Example:
+
+	$datestr = $gsm->datetime();
+
+If called with parameters, sets the current phone/gsm date and time to that
+of supplied value. Example:
+
+	$newdate = $gsm->datetime( time() );
+
+where C<time()> is the perl's builtin C<time()> function (see C<perldoc -f time> for details).
+Another variant allows to pass a C<localtime> array to set the correspondent datetime. Example:
+
+	$newdate = $gsm->datetime( localtime() );
+
+(Note the list context). Again you can read the details for C<localtime> function
+with C<perldoc -f localtime>.
+
+If your device does not support this command, an B<undefined> value will be returned
+in either case.
+
+
+=head2 hangup()
+
+Hangs up the phone, terminating the active calls, if any.
+This method has been never tested on real "live" conditions, but it needs to be
+specialized for GSM phones, because it relies on C<+HUP> GSM command.
+Example:
+
+	$gsm->hangup();
+
+
+=head2 imei()
+
+Returns the device own IMEI number (International Mobile Equipment Identifier ???).
+This identifier is numeric and should be unique among all GSM mobile devices and phones.
+This is not really true, but ... . Example:
+
+	my $imei = $gsm->imei();
+
+
+=head2 manufacturer()
+
+Returns the device manufacturer, usually only the first word (example: C<Nokia>,
+C<Siemens>, C<Falcom>, ...). Example:
+
+	my $man_name = $gsm->manufacturer();
+	if( $man_name eq 'Nokia' ) {
+		print "We have a nokia phone...";
+	} else {
+		print "We have a $man_name phone...";
+	}
+
+
+=head2 messages()
+
+This method is a somewhat unstable and subject to change, but for now it seems to work.
+It is meant to extract all text SMS messages stored on your SIM card.
+In list context, it returns a list of messages (or undefined value if no message or errors),
+every message being a C<Device::Gsm::Sms> object.
+
+
+=head2 model()
+
+Returns phone/device model name or number. Example:
+
+	my $model = $gsm->model();
+
+For example, for Siemens C45, C<$model> holds C<C45>; for Nokia 6600, C<$model>
+holds C<6600>.
+
+
+=head2 signal_quality()
+
+Returns the measure of signal quality expressed in dBm units, where near to zero is better.
+An example value is -91 dBm, and reported value is C<-91>. Values should range from
+-113 to -51 dBm, where -113 is the minimum signal quality and -51 is the theorical maximum quality.
+
+	my $level = $gsm->signal_quality();
+
+If signal quality can't be read or your device does not support this command,
+an B<undefined> value will be returned.
+
+=head2 software_version()
+
+Returns the device firmare version, as stored by the manufacturer. Example:
+
+	my $rev = $gsm->software_revision();
+
+For example, for my Siemens C45, C<$rev> holds C<06>.
+
+=head2 test_command()
+
+This method allows to query the device to know if a specific AT GSM command is supported.
+This is used only with GSM commands (those with C<AT+> prefix).
+For example, I want to know if my device supports the C<AT+GXXX> command.
+All we have to do is:
+
+	my $gsm = Device::Gsm->new( port => '/dev/myport' );
+
+	...
+
+	if( $gsm->test_command('GXXX') ) {
+		# Ok, command is supported
+	} else {
+		# Nope, no GXXX command
+	}
+
+Note that if you omit the starting C<+> character, it is automatically added.
+You can also test commands like C<^SNBR> or the like, without C<+> char being added.
+
+=for html
+<I>Must be explained better, uh?</I>
+
+=for comment
+// must be explainer better, uh? //
+
+=head2 register()
+
+"Registering" on the GSM network is what happens when you turn on your mobile phone or GSM equipment
+and the device tries to reach the GSM operator network. If your device requires a B<PIN> number,
+it is used here (but remember to supply the C<pin> parameter in new() object constructor for this
+to work.
+
+Registration can take some seconds, don't worry for the wait.
+After that, you are ready to send your SMS messages or do some voice calls, ... .
+Normally you don't need to call register() explicitly because it is done automatically for you
+when/if needed.
+
+If return value is true, registration was successful, otherwise there is something wrong;
+probably you supplied the wrong PIN code or network unreachable.
+
+=head2 send_sms()
+
+Obviously, this sends out SMS text messages. I should warn you that B<you cannot send>
+(for now) MMS, ringtone, smart, ota messages of any kind with this method.
+
+Send out an SMS message quickly:
+
+	my $sent = $gsm->send_sms(
+		content   => 'Hello, world!',   # SMS text
+		recipient => '+99000123456',    # recipient phone number
+	);
+
+	if( $sent ) {
+		print "OK!";
+	} else {
+		print "Troubles...";
+	}
+
+The allowed parameters to send_sms() are:
+
+=over -
+
+=item C<class>
+
+Class parameter can assume two values: C<normal> and C<flash>. Flash (or class zero) messages are
+particular because they are immediately displayed (without user confirm) and never stored
+on phone memory, while C<normal> is the default.
+
+=item C<content>
+
+This is the text you want to send, consisting of max 160 chars if you use B<PDU> mode
+and 140 (?) if in B<text> mode (more on this later).
+
+=item C<mode>
+
+Can assume two values (case insensitive): C<pdu> and C<text>.
+C<PDU> means B<Protocol Data Unit> and it is a sort of B<binary> encoding of commands,
+to save time/space, while C<text> is the normal GSM commands text mode.
+
+Recent mobile phones and GSM equipments surely have support for C<PDU> mode.
+Older OEM modules (like Falcom Swing, for example) don't have PDU mode, but only text mode.
+It is just a matter of trying.
+
+=item C<recipient>
+
+Phone number of message recipient
+
+=back
+
+=head2 service_center()
+
+If called without parameters, returns the actual SMS Service Center phone number. This is
+the number your phone automatically calls when receiving and sending SMS text messages, and
+your network operator should tell you what this number is.
+
+Example:
+
+	my $gsm = Device::Gsm->new( port => 'COM1' );
+	$gsm->connect() or die "Can't connect";
+	$srv_cnt = $gsm->service_center();
+	print "My service center number is: $srv_cnt\n";
+
+If you want to set or change this number (if used improperly this can disable
+sending of SMS messages, so be warned!), you can try something like:
+
+	my $ok = $gsm->service_center('+99001234567');
+	print "Service center changed!\n" if $ok;
+
+=head1 REQUIRES
 
 =over 4
 
-=item * 
+=item *
 
 Device::Modem, which in turn requires
 
@@ -540,10 +1103,43 @@ Device::SerialPort (or Win32::SerialPort on Windows machines)
 
 =back
 
-=head2 EXPORT
+=head1 EXPORT
 
 None
 
+=head1 TROUBLESHOOTING
+
+If you experience problems, please double check:
+
+=over 4
+
+=item Device permissions
+
+Maybe you don't have necessary permissions to access your serial,
+irda or bluetooth port device. Try executing your script as root, or
+try, if you don't mind, C<chmod a+rw /dev/ttyS1> (or whatever device
+you use instead of C</dev/ttyS1>).
+
+=item Connection speed
+
+Try switching C<baudrate> parameter from 19200 (the default value)
+to 9600 or viceversa. This one is the responsible of 80% of the problems,
+because there is no baudrate auto-detection.
+
+=item Device autoscan
+
+If all else fails, please use the B<autoscan> utility in the C<bin/> folder
+of the C<Device::Gsm> distribution. Try running this autoscan utility and
+examine the log file produced in the current directory.
+
+If you lose any hope, send me this log file so I can eventually
+have any clue about the problem / failure.
+
+Also this is a profiling tool, to know which commands are supported
+by your device, so please send me profiles of your devices, so
+I can add better support for all devices in the future!
+
+=back
 
 =head1 TO-DO
 
@@ -554,10 +1150,10 @@ None
 Build a simple spooler program that sends all SMS stored in a special
 queue (that could be a simple filesystem folder).
 
-=item Validity Period 
+=item Validity Period
 
-Support C<validity period> option on SMS sending. Tells how much time the SMS
-Service Center must hold the SMS for delivery.
+Support C<validity> period option on SMS sending. Tells how much time the SMS
+Service Center must hold the SMS for delivery when not received.
 
 =item Profiles
 
