@@ -1,0 +1,25 @@
+Revision history for Perl extension Device::Gsm.
+
+0.01  Tue Feb 26 22:15:31 CET 2002
+	- original version; created by h2xs 1.20 with options
+		-A -X -n Device::Gsm -v 0.01
+
+1.04  Mon Mar 25 07:34:52 CET 2002
+    - added pod, html, text docs
+
+1.05  Sat Mar 30 15:12:09 CET 2002
+	- added service_number() method
+
+1.06  Sat Mar 30 16:43:55 CET 2002
+	- added manufacturer(), model(), software_version() methods to 
+      get information about the device
+	- added test_command() to test support for a specific GSM command
+
+1.07  Wed Apr  3 23:38:51 CEST 2002
+	- removed unnecessary javadoc style tags
+	- made use of new parse_answer() call
+	- now service_center() works
+	- device identification functions now work
+	- improved test suite
+	- fixed logging class mechanism
+
