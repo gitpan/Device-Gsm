@@ -13,10 +13,10 @@
 # testing and support for custom GSM commands, so use it at your own risk,
 # and without ANY warranty! Have fun.
 #
-# $Id: Gsm.pm,v 1.10 2002/04/09 22:27:49 cosimo Exp $
+# $Id: Gsm.pm,v 1.14 2002/04/29 16:54:18 cosimo Exp $
 
 package Device::Gsm;
-$Device::Gsm::VERSION = sprintf "%d.%02d", q$Revision: 1.10 $ =~ /(\d+)\.(\d+)/;
+$Device::Gsm::VERSION = sprintf "%d.%02d", q$Revision: 1.14 $ =~ /(\d+)\.(\d+)/;
 
 use strict;
 use Device::Modem;
@@ -25,7 +25,7 @@ use Device::Gsm::Pdu;
 @Device::Gsm::ISA = ('Device::Modem');
 
 # Connection defaults to 19200 baud. This seems to be the optimal
-# rate for serial links to new gsm devices
+# rate for serial links to new gsm phones.
 $Device::Gsm::BAUDRATE = 19200;
 
 # Time to wait after network register command (secs)
@@ -39,7 +39,22 @@ sub connect {
 	my %aOpt;
 	%aOpt = @_ if(@_);
 
-	# GSM defaults to 9600 baud
+	#
+	# If you have problems with bad characters being trasmitted across serial link,
+	# try different baud rates, as below...
+	#
+	# .---------------------------------.
+	# | Model (phone/modem) |  Baudrate |
+	# |---------------------+-----------|
+	# | Falcom Swing (A2D)  |      9600 |
+	# | Siemens C35/C45     |     19200 |
+	# | Nokia phones        |     19200 |
+	# | Digicom             |      9600 |
+	# | Nokia Communicator  |      9600 |
+	# `---------------------------------'
+	#
+	# GSM class defaults to 19200 baud
+	#
 	$aOpt{'baudrate'} ||= $Device::Gsm::BAUDRATE;
 
 	$me->SUPER::connect( %aOpt );
@@ -71,7 +86,7 @@ sub manufacturer() {
 
 	}
 
-	return $ok eq 'OK' ? $man : $ok;
+	return $man || $ok;
 
 }
 
@@ -90,7 +105,7 @@ sub model() {
 
 	}
 
-	return $code eq 'OK' ? $model : $code;
+	return $model || $code;
 }
 
 # Get handphone serial number (IMEI number)
@@ -108,7 +123,7 @@ sub imei() {
 
 	}
 
-	return $code eq 'OK' ? $imei : $code;
+	return $imei || $code;
 }
 
 # Alias for `imei()' is `serial_number()'
@@ -130,7 +145,7 @@ sub software_version() {
 
 	}
 
-	return $code eq 'OK' ? $ver : $code;
+	return $ver || $code;
 }
 
 
@@ -266,9 +281,14 @@ sub _send_sms_text {
 	my $lOk = 0;
 	my $cReply;
 
+	# Select text format for messages
+	$me->atsend(  q[AT+CMGF=1] . Device::Modem::CR );
+	$me->wait(200);
+	$me->log->write('info', 'Selected text format for message sending');
+
 	# Send sms in text mode
 	$me->atsend( qq[AT+CMGS="$num"] . Device::Modem::CR );
-	$me->wait(500);
+	$me->wait(200);
 
 	$me->atsend( $text . Device::Modem::CTRL_Z );
 	$me->wait(1000);
@@ -317,11 +337,11 @@ sub _send_sms_pdu {
 	#OK
 
 	# Encode DA
-	my $enc_da = Device::Gsm::Pdu::encodeAddress( $num );
+	my $enc_da = Device::Gsm::Pdu::encode_address( $num );
 	$me->log->write('info', 'encoded dest. address is ['.$enc_da.']');
 
 	# Encode text
-	my $enc_msg = Device::Gsm::Pdu::encodeText7( $text );
+	my $enc_msg = Device::Gsm::Pdu::encode_text7( $text );
 	$me->log->write('info', 'encoded 7bit text (w/length) is ['.$enc_msg.']');
 
 	# Build PDU data
@@ -332,13 +352,20 @@ sub _send_sms_pdu {
 	# Sending main SMS command ( with length )
 	my $len = ( (length $pdu) >> 1 ) - 1; 
 	#$me->log->write('info', 'AT+CMGS='.$len.' string sent');
+
+	# Select PDU format for messages
+	$me->atsend(  q[AT+CMGF=0] . Device::Modem::CR );
+	$me->wait(200);
+	$me->log->write('info', 'Selected PDU format for msg sending');
+
+	# Send SMS length
 	$me->atsend( qq[AT+CMGS=$len] . Device::Modem::CR );
-	$me->wait( 1000 );
+	$me->wait(200);
 
 	# Sending SMS content encoded as PDU	
 	$me->log->write('info', 'PDU sent ['.$pdu.' + CTRLZ]' );
 	$me->atsend( $pdu . Device::Modem::CTRL_Z );
-	$me->wait( 1000 );
+	$me->wait(2000);
 
 	# Get reply and check for errors
 	$cReply = $me->answer();
@@ -477,7 +504,7 @@ Device::Gsm - Perl extension to interface GSM cellular / modems
       class     => 'normal',
 
       # SMS sending mode
-      # try `text' or old phones or GSM modems (as Falcom or Digicom),
+      # try `text' or old phones or GSM modems
       # `pdu' is the default nowadays
       mode      => 'pdu'
   );
@@ -505,7 +532,7 @@ Device::Modem, which in turn requires
 
 =item *
 
-Device::SerialPort
+Device::SerialPort (or Win32::SerialPort on Windows machines)
 
 =back
 
@@ -538,6 +565,6 @@ Cosimo Streppone, cosimo@cpan.org
 
 =head1 SEE ALSO
 
-Device::Modem(3), Device::SerialPort(3), perl(1)
+L<Device::Modem>, L<Device::SerialPort>, L<Win32::SerialPort>, perl(1)
 
 =cut
