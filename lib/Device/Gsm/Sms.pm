@@ -9,7 +9,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # Perl licensing terms for details.
 #
-# $Id: Sms.pm,v 1.5 2004/01/22 23:20:42 cosimo Exp $
+# $Id: Sms.pm,v 1.8 2004/03/23 22:27:14 cosimo Exp $
 
 package Device::Gsm::Sms;
 use strict;
@@ -21,7 +21,8 @@ use Device::Gsm::Pdu;
 use Device::Gsm::Sms::Structure;
 use Device::Gsm::Sms::Token;
 
-sub _log { print @_, "\n"; }
+sub _log    { print @_, "\n"; }
+sub _parent { $_[0]->{_parent} }
 
 #
 # new(
@@ -37,6 +38,13 @@ sub new {
 
 	# Create new message object
 	my $self = {};
+
+    # Store gsm parent object reference
+    if( exists $opt{'parent'} ) {
+        $self->{'_parent'} = $opt{'parent'};
+    }
+
+    # Store options into main object
 	$self->{'options'} = \%opt;
 
 	# Hash to contain token objects after decoding (must be accessible by name)
@@ -172,18 +180,6 @@ sub _old_decode {
 }
 
 
-#
-# Returns type of sms (SMS_DELIVER || SMS_SUBMIT)
-#
-sub type {
-	my $self = shift;
-	if( @_ ) {
-		$self->{'type'} = shift;
-	}
-	$self->{'type'};
-}
-
-
 sub decode {
 	my( $self, $type ) = @_;
 	$self->{'type'} = $type;
@@ -254,6 +250,36 @@ sub decode {
 }
 
 #
+# Delete an sms message
+#
+sub delete {
+    my $self = $_[0];
+    my $gsm  = $self->_parent();
+    my $ok;
+
+    # Try to delete message
+    my $msg_index = $self->index();
+
+    # Issue delete command
+    if( ref $gsm && $msg_index > 0 ) {
+        $ok = $gsm->deleteMessage($msg_index);
+    } else {
+        $gsm->log->write('could not delete sms n.'.$msg_index.'. Base class not found!');
+        $ok = undef;
+    }
+
+    return $ok;
+}
+
+#
+# Returns message own index number (position) 
+#
+sub index {
+	my $self = $_[0];
+    return $self->{'index'};
+}
+
+#
 # Only valid for SMS_SUBMIT messages (?)
 #
 sub recipient {
@@ -293,6 +319,19 @@ sub token ($) {
 	}
 }
 
+#
+# Returns type of sms (SMS_DELIVER || SMS_SUBMIT)
+#
+sub type {
+	my $self = shift;
+	if( @_ ) {
+		$self->{'type'} = shift;
+	}
+	$self->{'type'};
+}
+
+
+
 =pod
 
 =head1 NAME
@@ -309,28 +348,28 @@ Device::Gsm::Sms - SMS message internal class that represents a single text SMS 
     @sms = $gsm->messages();
 
     if( @sms ) {
-		foreach( @sms ) {
+        foreach( @sms ) {
             print $msg->recipient() , "\n";
             print $msg->sender()    , "\n";
             print $msg->content()   , "\n";
             print $msg->time()      , "\n";
             print $msg->type()      , "\n";
-		}
-	}
+        }
+    }
 
-	# Or you can instance a sms message from raw PDU data
+    # Or you can instance a sms message from raw PDU data
     my $msg = new Device::Gsm::Sms(
         header => '+CMGL: ...',
         pdu    => `[encoded pdu data]'
     );
 
-	if( defined $msg ) {
-	    print $msg->recipient() , "\n";
-	    print $msg->sender()    , "\n";
-	    print $msg->content()   , "\n";
-	    print $msg->time()      , "\n";
-	    print $msg->type()      , "\n";
-	}
+    if( defined $msg ) {
+        print $msg->recipient() , "\n";
+        print $msg->sender()    , "\n";
+        print $msg->content()   , "\n";
+        print $msg->time()      , "\n";
+        print $msg->type()      , "\n";
+    }
 
 =head1 DESCRIPTION
 
@@ -352,6 +391,16 @@ all proper values.
 If decoding process has errors or pdu data is not provided, return
 value is 0 (zero).
 
+
+=head2 delete()
+
+Delete the current SMS message from sim card.
+Example:
+
+    $gsm = Device::Gsm->new();
+    ...
+    my @msg = $gsm->messages();
+    $msg[0] && $msg[0]->delete();
 
 =head2 new()
 
@@ -375,6 +424,20 @@ Binary encoded sms data
 
 =back
 
+
+=head2 index()
+
+Returns the sms message index number, that is the position of message in the
+internal device memory or sim card.
+This number is used for example to delete the message.
+
+    my $gsm = Device::Gsm->new(port=>'/dev/ttyS0');
+    ...
+    my @messages = $gsm->messages();
+    ...
+    # Delete the first returned message
+    my $msg = shift @messages;
+    $gsm->delete_sms( $msg->index() );
 
 =head2 recipient()
 

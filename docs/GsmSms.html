@@ -19,7 +19,9 @@
 	<ul>
 
 		<li><a href="#decode__"><code>decode()</code></a></li>
+		<li><a href="#delete__"><code>delete()</code></a></li>
 		<li><a href="#new__"><code>new()</code></a></li>
+		<li><a href="#index__"><code>index()</code></a></li>
 		<li><a href="#recipient__"><code>recipient()</code></a></li>
 		<li><a href="#sender__"><code>sender()</code></a></li>
 		<li><a href="#status__"><code>status()</code></a></li>
@@ -56,28 +58,28 @@
     @sms = $gsm-&gt;messages();</pre>
 <pre>
     if( @sms ) {
-                foreach( @sms ) {
+        foreach( @sms ) {
             print $msg-&gt;recipient() , &quot;\n&quot;;
             print $msg-&gt;sender()    , &quot;\n&quot;;
             print $msg-&gt;content()   , &quot;\n&quot;;
             print $msg-&gt;time()      , &quot;\n&quot;;
             print $msg-&gt;type()      , &quot;\n&quot;;
-                }
-        }</pre>
+        }
+    }</pre>
 <pre>
-        # Or you can instance a sms message from raw PDU data
+    # Or you can instance a sms message from raw PDU data
     my $msg = new Device::Gsm::Sms(
         header =&gt; '+CMGL: ...',
         pdu    =&gt; `[encoded pdu data]'
     );</pre>
 <pre>
-        if( defined $msg ) {
-            print $msg-&gt;recipient() , &quot;\n&quot;;
-            print $msg-&gt;sender()    , &quot;\n&quot;;
-            print $msg-&gt;content()   , &quot;\n&quot;;
-            print $msg-&gt;time()      , &quot;\n&quot;;
-            print $msg-&gt;type()      , &quot;\n&quot;;
-        }</pre>
+    if( defined $msg ) {
+        print $msg-&gt;recipient() , &quot;\n&quot;;
+        print $msg-&gt;sender()    , &quot;\n&quot;;
+        print $msg-&gt;content()   , &quot;\n&quot;;
+        print $msg-&gt;time()      , &quot;\n&quot;;
+        print $msg-&gt;type()      , &quot;\n&quot;;
+    }</pre>
 <p>
 </p>
 <hr />
@@ -100,6 +102,16 @@ all proper values.</p>
 value is 0 (zero).</p>
 <p>
 </p>
+<h2><a name="delete__"><code>delete()</code></a></h2>
+<p>Delete the current SMS message from sim card.
+Example:</p>
+<pre>
+    $gsm = Device::Gsm-&gt;new();
+    ...
+    my @msg = $gsm-&gt;messages();
+    $msg[0] &amp;&amp; $msg[0]-&gt;delete();</pre>
+<p>
+</p>
 <h2><a name="new__"><code>new()</code></a></h2>
 <p>Basic constructor. You can build a new <code>Device::Gsm::Sms</code> object from the
 raw <strong>+CMGL</strong> header and <strong>PDU</strong> data. Those data is then decoded and a new
@@ -120,6 +132,20 @@ issue a <strong>+CMGL</strong> command
 Binary encoded sms data
 </dd>
 <p></p></dl>
+<p>
+</p>
+<h2><a name="index__"><code>index()</code></a></h2>
+<p>Returns the sms message index number, that is the position of message in the
+internal device memory or sim card.
+This number is used for example to delete the message.</p>
+<pre>
+    my $gsm = Device::Gsm-&gt;new(port=&gt;'/dev/ttyS0');
+    ...
+    my @messages = $gsm-&gt;messages();
+    ...
+    # Delete the first returned message
+    my $msg = shift @messages;
+    $gsm-&gt;delete_sms( $msg-&gt;index() );</pre>
 <p>
 </p>
 <h2><a name="recipient__"><code>recipient()</code></a></h2>
