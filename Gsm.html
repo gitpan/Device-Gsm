@@ -49,7 +49,7 @@
   if( $gsm-&gt;connect() ) {
       print &quot;connected!\n&quot;;
   } else {
-      print &quot;sorry, no connection with gsm phone on serial port!\n';
+      print &quot;sorry, no connection with gsm phone on serial port!\n&quot;;
   }
 </PRE>
 <PRE>
@@ -61,7 +61,7 @@
   # Get the manufacturer and model code of device
   my $mnf   = $gsm-&gt;manufacturer();
   my $model = $gsm-&gt;model();
-  print 'soft version is &quot;, $gsm-&gt;software_version(), &quot;\n&quot;;</PRE>
+  print &quot;soft version is &quot;, $gsm-&gt;software_version(), &quot;\n&quot;;</PRE>
 <PRE>
   my $imei = $gsm-&gt;imei() or
         $imei = $gsm-&gt;serial_number();
@@ -76,8 +76,8 @@
   }</PRE>
 <PRE>
 
-  print 'Service number is now: ', $gsm-&gt;service_number(), &quot;\n&quot;;
-  $gsm-&gt;service_number( '+001505050' );   # Sets new number</PRE>
+  print 'Service number is now: ', $gsm-&gt;service_center(), &quot;\n&quot;;
+  $gsm-&gt;service_center( '+001505050' );   # Sets new number</PRE>
 <PRE>
 
   # Send quickly a short text message
@@ -97,7 +97,7 @@
       class     =&gt; 'normal',</PRE>
 <PRE>
       # SMS sending mode
-      # try `text' or old phones or GSM modems
+      # try `text' on old phones or GSM modems
       # `pdu' is the default nowadays
       mode      =&gt; 'pdu'
   );</PRE>

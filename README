@@ -14,7 +14,7 @@ SYNOPSIS
       if( $gsm->connect() ) {
           print "connected!\n";
       } else {
-          print "sorry, no connection with gsm phone on serial port!\n';
+          print "sorry, no connection with gsm phone on serial port!\n";
       }
  
       # Register to GSM network (you must supply PIN number in above new() call)
@@ -23,7 +23,7 @@ SYNOPSIS
       # Get the manufacturer and model code of device
       my $mnf   = $gsm->manufacturer();
       my $model = $gsm->model();
-      print 'soft version is ", $gsm->software_version(), "\n";
+      print "soft version is ", $gsm->software_version(), "\n";
 
       my $imei = $gsm->imei() or
             $imei = $gsm->serial_number();
@@ -35,8 +35,8 @@ SYNOPSIS
           # No luck, CGMI command not available
       }
  
-      print 'Service number is now: ', $gsm->service_number(), "\n";
-      $gsm->service_number( '+001505050' );   # Sets new number
+      print 'Service number is now: ', $gsm->service_center(), "\n";
+      $gsm->service_center( '+001505050' );   # Sets new number
   
       # Send quickly a short text message
       $modem->send_sms(
@@ -50,14 +50,15 @@ SYNOPSIS
           recipient => '34910203040',
           content   => 'Hello world again, with more args',
 
+          # SMS sending mode
+          # try `text' on old phones or GSM modems
+          # `pdu' is the default nowadays
+          mode      => 'pdu',
+
           # SMS Class (can be `normal' or `flash')
           # `flash' mode delivers instantly!
-          class     => 'normal',
+          class     => 'normal'
 
-          # SMS sending mode
-          # try `text' or old phones or GSM modems
-          # `pdu' is the default nowadays
-          mode      => 'pdu'
       );
  
 DESCRIPTION
