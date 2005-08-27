@@ -43,7 +43,7 @@ die "cannot create Device::Gsm object!" unless $gsm;
 
 print "Connecting on $myport port...";
 
-$gsm->connect( baudrate => 19200 ) or die "cannot connect to GSM device on [$myport]\n";
+$gsm->connect( baudrate => 9600 ) or die "cannot connect to GSM device on [$myport]\n";
 
 print " ok\n";
 print "Registering on GSM network...";

@@ -19,6 +19,8 @@ my $myport;
 my $pin  = $ENV{'DEV_GSM_PIN'} || '0000';
 my $mypin;
 
+my $baud = $ENV{'DEV_GSM_BAUD'} || 19200;
+
 unless( $port ) {
 	print "Select your serial port [$port] : ";
 	chomp( $myport = <STDIN> );
@@ -43,7 +45,7 @@ die "cannot create Device::Gsm object!" unless $gsm;
 
 print "Connecting on $myport port...";
 
-$gsm->connect( baudrate => 19200 ) or die "cannot connect to GSM device on [$myport]\n";
+$gsm->connect( baudrate => $baud ) or die "cannot connect to GSM device on [$myport]\n";
 
 print " ok\n";
 print "Registering on GSM network...";
@@ -63,11 +65,11 @@ if( $lOk ) {
 
     my $idx = -1;
     do {
-        print "Insert number to be deleted (0-".($#msg)."): ";
+        print "Insert number to be deleted (1-".(scalar(@msg))."): ";
         $idx = <STDIN>;
         chomp $idx;
         $idx -= 0;
-    } while ($idx < 0 || $idx > $#msg);
+    } while ($idx <= 0 || $idx > @msg);
 
     print "Ok, going to delete message [$idx]\n";
 
