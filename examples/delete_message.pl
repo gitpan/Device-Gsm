@@ -3,14 +3,14 @@
 # Short example of use for Device::Gsm class
 # Script that deletes permanently one message from sim
 #
-# $Id: delete_message.pl,v 1.2 2004/08/18 07:02:07 cosimo Exp $
+# $Id: delete_message.pl,v 1.3 2006/04/20 20:06:15 cosimo Exp $
 
 use strict;
 use lib '../lib';
 use lib '../';
 use Gsm;
 
-print "\nthis is ", '$Id: delete_message.pl,v 1.2 2004/08/18 07:02:07 cosimo Exp $', "\n";
+print "\nthis is ", '$Id: delete_message.pl,v 1.3 2006/04/20 20:06:15 cosimo Exp $', "\n";
 print "\nDeletes one sms message from your sim card...\n";
 
 my $port = $ENV{'DEV_GSM_PORT'} || ( $^O =~ /Win/ ? 'COM2' : '/dev/ttyS1' );

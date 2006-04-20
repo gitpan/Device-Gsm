@@ -26,7 +26,7 @@ $mypin ||= $pin;
 $mypin =~ s/\D//g;
 $mypin = substr( $mypin, 0, 4 );
 
-my $gsm = new Device::Gsm( port => $myport, pin => $mypin, log => 'file,send.log', loglevel=>'info' );
+my $gsm = new Device::Gsm( port => $myport, pin => $mypin, log => 'file,send.log' );
 
 die "cannot create Device::Gsm object!" unless $gsm;
 
@@ -66,8 +66,7 @@ $content = substr( $content, 0, 160 );
 my $lOk = $gsm->send_sms(
 	content => $content,
 	recipient => $number,
-	class     => 'normal',    # try `flash'
-    status_report => 1
+	class     => 'normal'     # try `flash'
 );
 
 if( $lOk ) {
