@@ -5,6 +5,7 @@ docs/GSM0338.txt
 docs/GsmSms.html
 examples/delete_message.pl
 examples/get_time.pl
+examples/network.pl
 examples/read_messages.pl
 examples/report_signal.pl
 examples/send_sms.pl
@@ -13,6 +14,7 @@ examples/sync_time.pl
 Gsm.pm
 INSTALL
 lib/Device/Gsm/Charset.pm
+lib/Device/Gsm/Networks.pm
 lib/Device/Gsm/Pdu.pm
 lib/Device/Gsm/Sms.pm
 lib/Device/Gsm/Sms/Structure.pm
@@ -39,3 +41,4 @@ t/06msgcodec.t
 t/07tokens.t
 t/20pdu.t
 t/30gsmascii.t
+t/30networks.t
