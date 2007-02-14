@@ -1,5 +1,5 @@
 # Device::Gsm - a Perl class to interface GSM devices as AT modems
-# Copyright (C) 2002-2006 Cosimo Streppone, cosimo@cpan.org
+# Copyright (C) 2002-2007 Cosimo Streppone, cosimo@cpan.org
 #
 # This program is free software; you can redistribute it and/or modify
 # it only under the terms of Perl itself.
@@ -15,7 +15,7 @@
 # $Id: Gsm.pm,v 1.46 2006/12/19 21:00:43 cosimo Exp $
 
 package Device::Gsm;
-$Device::Gsm::VERSION = '1.46';
+$Device::Gsm::VERSION = '1.47';
 
 use strict;
 use Device::Modem 1.47;
