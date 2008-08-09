@@ -1,4 +1,4 @@
-# $Id: 06msgcodec.t,v 1.8 2006/08/12 08:57:19 cosimo Exp $
+# $Id: 06msgcodec.t,v 1.8 2006-08-12 08:57:19 cosimo Exp $
 #
 # test sim card message encoding/decoding functions 
 #

@@ -12,7 +12,7 @@
 # Commercial support is available. Write me if you are
 # interested in new features or software support.
 #
-# $Id: Charset.pm,v 1.3 2006/04/20 20:07:04 cosimo Exp $
+# $Id: Charset.pm,v 1.3 2006-04-20 20:07:04 cosimo Exp $
 
 package Device::Gsm::Charset;
 $VERSION = substr q$Revision: 1.3 $, 0, 10;

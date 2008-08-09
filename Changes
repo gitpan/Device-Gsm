@@ -1,5 +1,10 @@
 Revision history for Perl extension Device::Gsm.
 
+1.49  Sat Aug  9 15:12:00 CET 2008
+    - Modified manufacturer() to work also with some Motorola phones,
+      that report AT+CGMI in a slightly different way.
+    - Changed by phone number :)
+
 1.48  Wed Feb 28 21:55:23 CET 2007
     - Fixed CPAN bug #24781, thanks to torsten at archesoft dot de for reporting.
 

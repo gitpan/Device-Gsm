@@ -1,4 +1,4 @@
-# $Id: 02info.t,v 1.2 2002/09/25 22:08:06 cosimo Exp $
+# $Id: 02info.t,v 1.2 2002-09-25 22:08:06 cosimo Exp $
 #
 # test connection with a gsm device on serial port
 #

@@ -1,4 +1,4 @@
-# $Id: 04syslog.t,v 1.5 2006/08/12 08:57:52 cosimo Exp $
+# $Id: 04syslog.t,v 1.5 2006-08-12 08:57:52 cosimo Exp $
 #
 # test syslog mechanism
 #

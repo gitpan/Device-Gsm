@@ -1,13 +1,16 @@
-# http://module-build.sourceforge.net/META-spec.html
-#XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
-name:         Device-Gsm
-version:      1.48
-version_from: Gsm.pm
-installdirs:  site
-requires:
+--- #YAML:1.0
+name:                Device-Gsm
+version:             1.49
+abstract:            Perl extension to interface GSM phones / modems
+license:             ~
+author:              
+    - Cosimo Streppone <cosimo@cpan.org>
+generated_by:        ExtUtils::MakeMaker version 6.42
+distribution_type:   module
+requires:     
     Device::Modem:                 1.47
-    Device::SerialPort:            0
     Test::More:                    0
-
-distribution_type: module
-generated_by: ExtUtils::MakeMaker version 6.30
+    Win32::SerialPort:             0
+meta-spec:
+    url:     http://module-build.sourceforge.net/META-spec-v1.3.html
+    version: 1.3

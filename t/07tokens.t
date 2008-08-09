@@ -1,4 +1,4 @@
-# $Id: 07tokens.t,v 1.2 2007/02/28 21:18:14 cosimo Exp $
+# $Id: 07tokens.t,v 1.2 2007-02-28 21:18:14 cosimo Exp $
 #
 # test new token engine for decoding/encoding sms messages 
 #

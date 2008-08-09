@@ -2,12 +2,12 @@
 #
 # Short example of use for Device::Gsm class
 #
-# $Id: send_sms.pl,v 1.2 2002/04/29 17:03:46 cosimo Exp $
+# $Id: send_sms.pl,v 1.2 2002-04-29 17:03:46 cosimo Exp $
 
 use strict;
 use Device::Gsm;
 
-print "\nthis is ", '$Id: send_sms.pl,v 1.2 2002/04/29 17:03:46 cosimo Exp $', "\n";
+print "\nthis is ", '$Id: send_sms.pl,v 1.2 2002-04-29 17:03:46 cosimo Exp $', "\n";
 print "I hope I can send an SMS on your GSM phone attached to...\n";
 
 my $port = $^O =~ /Win/ ? 'COM2' : '/dev/ttyS1';

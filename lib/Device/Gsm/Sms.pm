@@ -12,7 +12,7 @@
 # Commercial support is available. Write me if you are
 # interested in new features or software support.
 #
-# $Id: Sms.pm,v 1.14 2006/10/17 15:53:18 cosimo Exp $
+# $Id: Sms.pm,v 1.14 2006-10-17 15:53:18 cosimo Exp $
 
 package Device::Gsm::Sms;
 $Device::Gsm::Sms::VERSION = substr q$Revision: 1.14 $, 10;

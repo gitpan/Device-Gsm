@@ -1,4 +1,4 @@
-# $Id: Makefile.PL,v 1.8 2006/04/20 20:11:00 cosimo Exp $
+# $Id: Makefile.PL,v 1.8 2006-04-20 20:11:00 cosimo Exp $
 use ExtUtils::MakeMaker;
 WriteMakefile(
 	'ABSTRACT_FROM' => 'Gsm.pm',

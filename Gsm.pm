@@ -1,5 +1,5 @@
 # Device::Gsm - a Perl class to interface GSM devices as AT modems
-# Copyright (C) 2002-2007 Cosimo Streppone, cosimo@cpan.org
+# Copyright (C) 2002-2008 Cosimo Streppone, cosimo@cpan.org
 #
 # This program is free software; you can redistribute it and/or modify
 # it only under the terms of Perl itself.
@@ -12,10 +12,10 @@
 # Commercial support is available. Write me if you are
 # interested in new features or software support.
 #
-# $Id: Gsm.pm,v 1.47 2007/02/28 20:54:32 cosimo Exp $
+# $Id: Gsm.pm,v 1.48 2007-03-17 16:24:15 cosimo Exp $
 
 package Device::Gsm;
-$Device::Gsm::VERSION = '1.48';
+$Device::Gsm::VERSION = '1.49';
 
 use strict;
 use Device::Modem 1.47;
@@ -165,22 +165,34 @@ sub hangup {
 #
 # Who is the manufacturer of this device?
 #
-sub manufacturer() {
-	my $self = shift;
-	my($ok, $man);
+sub manufacturer
+{
+    my $self = shift;
+    my($ok, $man);
 
-	# Test if manufacturer code command is supported
-	if( $self->test_command('+CGMI') ) {
+	# We can't test for command support, because some phones, mainly Motorola
+	# will spit out an error, instead of telling if CGMI is supported.
+	$self->atsend( 'AT+CGMI' . Device::Modem::CR );
+	($ok, $man) = $self->parse_answer($Device::Modem::STD_RESPONSE);
 
-		$self->atsend( 'AT+CGMI' . Device::Modem::CR );
-		($ok, $man) = $self->parse_answer($Device::Modem::STD_RESPONSE);
-
-		$self->log->write('info', 'manufacturer of this device appears to be ['.$man.']');
-
+	if($ok ne 'OK')
+	{
+		$self->log->write('warn', 'manufacturer command ended with error [' . $ok . $man . ']');
+		return undef;
 	}
 
-	return $man || $ok;
+	# Again, seems that Motorola phones will re-echo
+	# the CGMI command header, instead of giving us the
+	# manufacturer info we want. Thanks to Niolay Shaplov
+	# for reporting (RT #31540)
+	if($man =~ /\+CGMI:\ \"(.*)\"/s)
+	{
+		$man = $1;
+	}
 
+	$self->log->write('info', 'manufacturer of this device appears to be ['.$man.']');
+
+	return $man || $ok;
 }
 
 #
