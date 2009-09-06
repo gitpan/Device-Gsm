@@ -9,11 +9,13 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # Perl licensing terms for details.
 #
-# $Id: Structure.pm,v 1.3 2003-03-25 06:35:37 cosimo Exp $
+# $Id: Structure.pm 248 2009-08-18 19:20:47Z cosimo_2 $
 
 package Device::Gsm::Sms;
+
 use strict;
 use integer;
+
 use Device::Gsm::Sms;
 use Device::Gsm::Sms::Token;
 

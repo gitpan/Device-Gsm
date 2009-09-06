@@ -12,7 +12,7 @@
 # Commercial support is available. Write me if you are
 # interested in new features or software support.
 #
-# $Id: Pdu.pm,v 1.11 2007-02-28 21:20:35 cosimo Exp $
+# $Id: Pdu.pm 246 2009-08-18 19:16:55Z cosimo_2 $
 
 # TODO document decode_text8()
 

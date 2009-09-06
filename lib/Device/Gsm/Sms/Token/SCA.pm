@@ -9,7 +9,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # Perl licensing terms for details.
 #
-# $Id: SCA.pm,v 1.3 2006-04-20 20:07:19 cosimo Exp $
+# $Id: SCA.pm 250 2009-09-06 08:39:19Z cosimo_2 $
 
 package Sms::Token::SCA;
 use integer;
@@ -38,7 +38,7 @@ sub decode {
 		$self->data( '' );
 		$self->state( Sms::Token::DECODED );
 		# Remove length-octet read from message
-		$$rMessage = substr( $$rMessage, 1 );
+		$$rMessage = substr( $$rMessage, 2 );
 		return 1;
 	}
 

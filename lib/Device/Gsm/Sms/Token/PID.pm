@@ -9,7 +9,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # Perl licensing terms for details.
 #
-# $Id: PID.pm,v 1.4 2006-04-20 20:07:19 cosimo Exp $
+# $Id: PID.pm 246 2009-08-18 19:16:55Z cosimo_2 $
 
 package Sms::Token::PID;
 use integer;

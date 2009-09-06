@@ -1,5 +1,5 @@
 # Device::Gsm::Sms - SMS message simple class that represents a text SMS message
-# Copyright (C) 2002-2006 Cosimo Streppone, cosimo@cpan.org
+# Copyright (C) 2002-2009 Cosimo Streppone, cosimo@cpan.org
 #
 # This program is free software; you can redistribute it and/or modify
 # it only under the terms of Perl itself.
@@ -12,10 +12,9 @@
 # Commercial support is available. Write me if you are
 # interested in new features or software support.
 #
-# $Id$
+# $Id: Sms.pm 247 2009-08-18 19:19:46Z cosimo_2 $
 
 package Device::Gsm::Sms;
-$Device::Gsm::Sms::VERSION = substr q$Revision$, 10;
 
 use strict;
 use integer;
