@@ -9,11 +9,11 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # Perl licensing terms for more details.
 #
-# $Id: Gsm.pm 249 2009-08-18 19:21:12Z cosimo_2 $
+# $Id$
 
 package Device::Gsm;
 
-$Device::Gsm::VERSION = '1.54';
+$Device::Gsm::VERSION = '1.55';
 
 use strict;
 use Device::Modem 1.47;

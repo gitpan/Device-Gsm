@@ -9,10 +9,10 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # Perl licensing terms for details.
 #
-# $Id: Charset.pm 251 2009-09-06 08:40:13Z cosimo_2 $
+# $Id$
 
 package Device::Gsm::Charset;
-$VERSION = substr q$Revision: 251 $, 0, 10;
+$VERSION = substr q$Revision$, 0, 10;
 
 use strict;
 use constant NPC7   => 0x3F;

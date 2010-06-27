@@ -12,7 +12,7 @@
 # Commercial support is available. Write me if you are
 # interested in new features or software support.
 #
-# $Id: Sms.pm 247 2009-08-18 19:19:46Z cosimo_2 $
+# $Id$
 
 package Device::Gsm::Sms;
 

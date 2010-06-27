@@ -9,7 +9,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # Perl licensing terms for details.
 #
-# $Id: SCA.pm 250 2009-09-06 08:39:19Z cosimo_2 $
+# $Id$
 
 package Sms::Token::SCA;
 use integer;

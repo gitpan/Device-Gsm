@@ -12,7 +12,7 @@
 # Commercial support is available. Write me if you are
 # interested in new features or software support.
 #
-# $Id: Pdu.pm 246 2009-08-18 19:16:55Z cosimo_2 $
+# $Id$
 
 # TODO document decode_text8()
 
@@ -93,7 +93,7 @@ sub decode_text7($) {
 		$bits = substr $bits, 7;
 	}
 	
-	$decoded;
+	return substr($decoded, 0, $len);
 }
 
 # decode 8-bit encoded text

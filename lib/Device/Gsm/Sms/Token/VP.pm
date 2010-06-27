@@ -9,7 +9,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # Perl licensing terms for details.
 #
-# $Id: VP.pm 246 2009-08-18 19:16:55Z cosimo_2 $
+# $Id$
 
 package Sms::Token::VP;
 use integer;

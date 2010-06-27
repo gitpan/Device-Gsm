@@ -12,7 +12,7 @@
 # Commercial support is available. Write me if you are
 # interested in new features or software support.
 #
-# $Id: Token.pm 246 2009-08-18 19:16:55Z cosimo_2 $
+# $Id$
 
 package Sms::Token;
 
