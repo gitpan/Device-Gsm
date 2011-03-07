@@ -11,7 +11,7 @@
 
 package Device::Gsm;
 
-$Device::Gsm::VERSION = '1.57';
+$Device::Gsm::VERSION = '1.58';
 
 use strict;
 use Device::Modem 1.47;
@@ -514,6 +514,11 @@ sub register {
 
     # Get answer
     my $cReply = $me->answer($Device::Modem::STD_RESPONSE, 10000);
+
+    if (! defined $cReply || $cReply eq "") {
+        $me->log->write('warn', 'Could not get a reply for the AT+CPIN command');
+        return;
+    }
 
     if ($cReply =~ /(READY|SIM PIN2)/) {
 
