@@ -1,5 +1,5 @@
 # Device::Gsm - a Perl class to interface GSM devices as AT modems
-# Copyright (C) 2002-2010 Cosimo Streppone, cosimo@cpan.org
+# Copyright (C) 2002-2011 Cosimo Streppone, cosimo@cpan.org
 #
 # This program is free software; you can redistribute it and/or modify
 # it only under the terms of Perl itself.
@@ -11,7 +11,7 @@
 
 package Device::Gsm;
 
-$Device::Gsm::VERSION = '1.56';
+$Device::Gsm::VERSION = '1.57';
 
 use strict;
 use Device::Modem 1.47;
@@ -505,7 +505,7 @@ sub register {
     # On some phones, registration doesn't work, so you can skip it entirely
     # by passing 'assume_registered => 1' to the new() constructor
     if (exists $me->{'assume_registered'} && $me->{'assume_registered'}) {
-        return 1;
+        return $me->{'REGISTERED'} = 1;
     }
 
     # Send PIN status query
