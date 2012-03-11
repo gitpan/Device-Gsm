@@ -1,5 +1,8 @@
-# Sms::Token::SCTS - SMS SCTS token (Service Center Time Stamp)
+# Sms::Token::DT - SMS TP-DT token (Discharge-Time of <TP-ST>,
+# given in semioctet representation, and represents
+# the local time as described in GSM03.40)
 # Copyright (C) 2002-2006 Cosimo Streppone, cosimo@cpan.org
+# Copyright (C) 2006-2011 Grzegorz Wozniak, wozniakg@gmail.com
 #
 # This program is free software; you can redistribute it and/or modify
 # it only under the terms of Perl itself.
@@ -11,16 +14,16 @@
 #
 # $Id$
 
-package Sms::Token::SCTS;
+package Sms::Token::DT;
 use integer;
 use strict;
 use Device::Gsm::Sms::Token;
 
-@Sms::Token::SCTS::ISA = ('Sms::Token');
+@Sms::Token::DT::ISA = ('Sms::Token');
 
 # takes (scalar message (string) reference)
 # returns success/failure of decoding
-# if all ok, removes SCTS from message
+# if all ok, removes DT from message
 sub decode {
     my ($self, $rMessage) = @_;
     my $ok = 0;
@@ -51,7 +54,7 @@ sub decode {
     # Signal token as correctly decoded (?)
     $self->state(Sms::Token::DECODED);
 
-    # Remove SCTS info from message
+    # Remove DT info from message
     $$rMessage = substr($$rMessage, 14);
 
     return 1;

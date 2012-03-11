@@ -1,9 +1,9 @@
 --- #YAML:1.0
 name:               Device-Gsm
-version:            1.58
+version:            1.59
 abstract:           Perl extension to interface GSM phones / modems
 author:
-    - Cosimo Streppone <cosimo@cpan.org>
+    - Cosimo Streppone <cosimo@cpan.org>,Grzegorz Woźniak <wozniakg@gmail.com>
 license:            unknown
 distribution_type:  module
 configure_requires:
